@@ -9,11 +9,11 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from config import get_settings
-from models import Bill, BillItem, Employee, Patient, Service
+from models import Bill, BillItem, Employee, Patient, Service, HospitalSetting
 from utils import calculate_bill
 
 
-ModelType = TypeVar("ModelType", Bill, BillItem, Employee, Patient, Service)
+ModelType = TypeVar("ModelType", Bill, BillItem, Employee, Patient, Service, HospitalSetting)
 
 PATIENT_FIELDS = {
     "patient_code",
@@ -399,3 +399,20 @@ def get_all_services(
         select(Service).order_by(Service.name), offset, limit
     )
     return list(db.scalars(statement).all())
+
+
+def get_hospital_settings(db: Session) -> dict[str, str]:
+    settings = db.scalars(select(HospitalSetting)).all()
+    return {s.key: s.value for s in settings}
+
+
+def update_hospital_settings(db: Session, settings_dict: Mapping[str, str]) -> dict[str, str]:
+    for key, val in settings_dict.items():
+        setting = db.get(HospitalSetting, key)
+        if setting is not None:
+            setting.value = str(val)
+        else:
+            setting = HospitalSetting(key=key, value=str(val))
+            db.add(setting)
+    db.commit()
+    return get_hospital_settings(db)

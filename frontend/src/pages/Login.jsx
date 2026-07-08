@@ -33,8 +33,8 @@ function Login() {
     <main className="login-page">
       <section className="login-card">
         <div className="brand login-brand">
-          <span className="brand-mark">HB</span>
-          <span>Hospital Billing</span>
+          <img src="/logo.png" alt="MEDHA HOSPITAL Logo" className="brand-logo" />
+          <span>MEDHA HOSPITAL</span>
         </div>
         <div className="page-heading">
           <h1>Welcome back</h1>

@@ -22,8 +22,8 @@ function Sidebar({ employee }) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark">HB</span>
-        <span>Hospital Billing</span>
+        <img src="/logo.png" alt="MEDHA HOSPITAL Logo" className="brand-logo" />
+        <span>MEDHA HOSPITAL</span>
       </div>
       <nav className="sidebar-nav" aria-label="Primary navigation">
         {links.map((link) => (

@@ -13,6 +13,7 @@ import {
   updateBill,
 } from '../services/billService.js'
 import { getPatients } from '../services/patientService.js'
+import { getSettings } from '../services/settingService.js'
 
 const PAGE_SIZE = 8
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -108,6 +109,7 @@ function BillEditForm({ bill, patients, isSaving, error, onCancel, onSubmit }) {
 function Bills() {
   const [bills, setBills] = useState([])
   const [patients, setPatients] = useState([])
+  const [hospitalSettings, setHospitalSettings] = useState(null)
   const [invoiceSearch, setInvoiceSearch] = useState('')
   const [patientSearch, setPatientSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('')
@@ -128,11 +130,16 @@ function Bills() {
     setIsLoading(true)
     setLoadError('')
     try {
-      const [billData, patientData] = await Promise.all([getBills(), getPatients()])
+      const [billData, patientData, settingsData] = await Promise.all([
+        getBills(),
+        getPatients(),
+        getSettings(),
+      ])
       setBills(billData)
       setPatients(patientData)
+      setHospitalSettings(settingsData)
     } catch (error) {
-      setLoadError(getApiErrorMessage(error, 'Unable to load bills.'))
+      setLoadError(getApiErrorMessage(error, 'Unable to load bills or settings.'))
     } finally {
       setIsLoading(false)
     }
@@ -404,6 +411,7 @@ function Bills() {
             canPrint
             onPrint={() => window.print()}
             employeeName={viewedBill?.employee?.full_name}
+            hospitalSettings={hospitalSettings}
           />
         )}
       </Modal>

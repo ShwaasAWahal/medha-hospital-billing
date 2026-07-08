@@ -33,6 +33,7 @@ function BillForm({
   onSubmit,
   onPrint,
   employeeName,
+  hospitalSettings,
 }) {
   const previewServices = savedBill
     ? savedBill.items.map((item) => ({
@@ -241,6 +242,7 @@ function BillForm({
         canPrint={Boolean(savedBill)}
         employeeName={savedBill?.employee?.full_name || employeeName}
         onPrint={onPrint}
+        hospitalSettings={hospitalSettings}
       />
     </div>
   )

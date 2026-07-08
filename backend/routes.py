@@ -33,6 +33,8 @@ from schemas import (
     ServiceCreate,
     ServiceResponse,
     ServiceUpdate,
+    HospitalSettingsResponse,
+    HospitalSettingsUpdate,
     Token,
 )
 
@@ -367,3 +369,45 @@ def delete_service(
     if not deleted:
         raise HTTPException(status_code=404, detail="Service not found")
     return MessageResponse(message="Service deleted")
+
+
+# Settings
+
+@router.get("/settings", response_model=HospitalSettingsResponse, tags=["settings"])
+def get_hospital_settings(
+    db: Annotated[Session, Depends(get_db)],
+    _current_employee: StaffEmployee,
+) -> HospitalSettingsResponse:
+    settings_dict = crud.get_hospital_settings(db)
+    return HospitalSettingsResponse(
+        name=settings_dict.get("name", "MEDHA HOSPITAL"),
+        address=settings_dict.get("address", "Hospital Address"),
+        city=settings_dict.get("city", "City"),
+        state=settings_dict.get("state", "State"),
+        pin=settings_dict.get("pin", "PIN"),
+        phone=settings_dict.get("phone", "+91 XXXXX XXXXX"),
+        email=settings_dict.get("email", "billing@hospital.example"),
+        gstin=settings_dict.get("gstin", "GSTIN Placeholder"),
+        tax_rate=float(settings_dict.get("tax_rate", "18.0")),
+    )
+
+
+@router.put("/settings", response_model=HospitalSettingsResponse, tags=["settings"])
+def update_hospital_settings(
+    payload: HospitalSettingsUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    _current_employee: AdminEmployee,
+) -> HospitalSettingsResponse:
+    settings_dict = payload.model_dump()
+    updated = _write(lambda: crud.update_hospital_settings(db, settings_dict))
+    return HospitalSettingsResponse(
+        name=updated.get("name", "MEDHA HOSPITAL"),
+        address=updated.get("address", "Hospital Address"),
+        city=updated.get("city", "City"),
+        state=updated.get("state", "State"),
+        pin=updated.get("pin", "PIN"),
+        phone=updated.get("phone", "+91 XXXXX XXXXX"),
+        email=updated.get("email", "billing@hospital.example"),
+        gstin=updated.get("gstin", "GSTIN Placeholder"),
+        tax_rate=float(updated.get("tax_rate", "18.0")),
+    )

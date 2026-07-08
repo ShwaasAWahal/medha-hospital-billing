@@ -150,3 +150,27 @@ class ServiceResponse(BaseSchema):
     id: int
     name: str
     price: Decimal
+
+
+class HospitalSettingsResponse(BaseModel):
+    name: str
+    address: str
+    city: str
+    state: str
+    pin: str
+    phone: str
+    email: str
+    gstin: str
+    tax_rate: float
+
+
+class HospitalSettingsUpdate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    address: str = Field(min_length=1, max_length=200)
+    city: str = Field(min_length=1, max_length=100)
+    state: str = Field(min_length=1, max_length=100)
+    pin: str = Field(min_length=1, max_length=20)
+    phone: str = Field(min_length=1, max_length=50)
+    email: str = Field(min_length=1, max_length=100)
+    gstin: str = Field(min_length=1, max_length=100)
+    tax_rate: float = Field(ge=0, le=100)

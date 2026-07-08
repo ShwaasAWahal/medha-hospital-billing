@@ -103,6 +103,13 @@ class Service(Base):
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
 
 
+class HospitalSetting(Base):
+    __tablename__ = "hospital_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 __all__ = [
     "Base",
     "Bill",
@@ -111,4 +118,5 @@ __all__ = [
     "EmployeeRole",
     "Patient",
     "Service",
+    "HospitalSetting",
 ]

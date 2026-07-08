@@ -10,14 +10,6 @@ function formatJustDate(dateString) {
   return `${day}/${month}/${year}`
 }
 
-const hospital = {
-  name: import.meta.env.VITE_HOSPITAL_NAME || 'Your Hospital Name',
-  address: import.meta.env.VITE_HOSPITAL_ADDRESS || 'Hospital Address, City, State - PIN',
-  phone: import.meta.env.VITE_HOSPITAL_PHONE || '+91 XXXXX XXXXX',
-  email: import.meta.env.VITE_HOSPITAL_EMAIL || 'billing@hospital.example',
-  gstin: import.meta.env.VITE_HOSPITAL_GSTIN || 'GSTIN Placeholder',
-}
-
 function PrintableInvoice({
   invoiceNumber,
   createdAt,
@@ -31,8 +23,17 @@ function PrintableInvoice({
   paymentMode,
   canPrint,
   onPrint,
+  hospitalSettings,
 }) {
   const netAmount = subtotal - discount
+
+  const hospitalName = hospitalSettings?.name || import.meta.env.VITE_HOSPITAL_NAME || 'MEDHA HOSPITAL'
+  const hospitalAddress = hospitalSettings
+    ? `${hospitalSettings.address}, ${hospitalSettings.city}, ${hospitalSettings.state} - ${hospitalSettings.pin}`
+    : import.meta.env.VITE_HOSPITAL_ADDRESS || 'Hospital Address, City, State - PIN'
+  const hospitalPhone = hospitalSettings?.phone || import.meta.env.VITE_HOSPITAL_PHONE || '+91 XXXXX XXXXX'
+  const hospitalEmail = hospitalSettings?.email || import.meta.env.VITE_HOSPITAL_EMAIL || 'billing@hospital.example'
+  const hospitalGstin = hospitalSettings?.gstin || import.meta.env.VITE_HOSPITAL_GSTIN || 'GSTIN Placeholder'
 
   return (
     <div className="printable-invoice">
@@ -215,9 +216,9 @@ function PrintableInvoice({
       <article className="invoice-sheet legacy-print-layout" aria-label="Printable hospital invoice">
         <header className="invoice-header-legacy">
           <div className="hospital-info-legacy">
-            <h2>{hospital.name}</h2>
-            <p className="hospital-address-legacy">{hospital.address}</p>
-            <p className="hospital-contact-legacy">Phone: {hospital.phone} | Email: {hospital.email} | GSTIN: {hospital.gstin}</p>
+            <h2>{hospitalName}</h2>
+            <p className="hospital-address-legacy">{hospitalAddress}</p>
+            <p className="hospital-contact-legacy">Phone: {hospitalPhone} | Email: {hospitalEmail} | GSTIN: {hospitalGstin}</p>
           </div>
         </header>
 

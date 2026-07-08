@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../services/api.js'
 import { createBill } from '../services/billService.js'
 import { getPatients } from '../services/patientService.js'
 import { getServices } from '../services/serviceService.js'
+import { getSettings } from '../services/settingService.js'
 
 const configuredTaxRate = Number(import.meta.env.VITE_TAX_RATE_PERCENT ?? 18)
 const TAX_RATE = Number.isFinite(configuredTaxRate) && configuredTaxRate >= 0
@@ -35,6 +36,7 @@ function NewBill() {
   const [patientError, setPatientError] = useState('')
   const [services, setServices] = useState(() => [createServiceRow()])
   const [availableServices, setAvailableServices] = useState([])
+  const [hospitalSettings, setHospitalSettings] = useState(null)
   const [discount, setDiscount] = useState('0')
   const [paymentMode, setPaymentMode] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -45,14 +47,16 @@ function NewBill() {
     setIsPatientLoading(true)
     setPatientError('')
     try {
-      const [patientData, serviceData] = await Promise.all([
+      const [patientData, serviceData, settingsData] = await Promise.all([
         getPatients(),
         getServices(),
+        getSettings(),
       ])
       setPatients(patientData)
       setAvailableServices(serviceData)
+      setHospitalSettings(settingsData)
     } catch (error) {
-      setPatientError(getApiErrorMessage(error, 'Unable to load patient or service data.'))
+      setPatientError(getApiErrorMessage(error, 'Unable to load patient, service or settings data.'))
     } finally {
       setIsPatientLoading(false)
     }
@@ -80,7 +84,8 @@ function NewBill() {
     const discountPercent = Math.max(0, Math.min(100, Number(discount) || 0))
     const discountAmount = roundMoney(subtotal * (discountPercent / 100))
     const taxableAmount = Math.max(0, subtotal - discountAmount)
-    const tax = roundMoney(taxableAmount * TAX_RATE / 100)
+    const currentTaxRate = hospitalSettings ? Number(hospitalSettings.tax_rate) : TAX_RATE
+    const tax = roundMoney(taxableAmount * currentTaxRate / 100)
 
     return {
       lineTotals,
@@ -89,7 +94,7 @@ function NewBill() {
       tax,
       grandTotal: roundMoney(taxableAmount + tax),
     }
-  }, [discount, services])
+  }, [discount, services, hospitalSettings])
 
   function markDraft() {
     setSavedBill(null)
@@ -198,13 +203,14 @@ function NewBill() {
           markDraft()
         }}
         totals={totals}
-        taxRate={TAX_RATE}
+        taxRate={hospitalSettings ? Number(hospitalSettings.tax_rate) : TAX_RATE}
         savedBill={savedBill}
         isSaving={isSaving}
         error={saveError}
         onSubmit={saveBill}
         onPrint={() => window.print()}
         employeeName={employee?.full_name}
+        hospitalSettings={hospitalSettings}
       />
     </div>
   )
