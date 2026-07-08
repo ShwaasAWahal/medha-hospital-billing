@@ -94,14 +94,14 @@ class BillItemResponse(BaseSchema):
 
 class BillCreate(BaseModel):
     patient_id: int = Field(gt=0)
-    discount: Decimal = Field(default=Decimal("0.00"), ge=0, max_digits=12, decimal_places=2)
+    discount: Decimal = Field(default=Decimal("0.00"), ge=0, le=100, max_digits=12, decimal_places=2)
     payment_mode: str = Field(min_length=1, max_length=50)
     items: list[BillItemCreate] = Field(min_length=1)
 
 
 class BillUpdate(BaseModel):
     patient_id: int | None = Field(default=None, gt=0)
-    discount: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+    discount: Decimal | None = Field(default=None, ge=0, le=100, max_digits=12, decimal_places=2)
     payment_mode: str | None = Field(default=None, min_length=1, max_length=50)
 
 
@@ -126,3 +126,27 @@ class DashboardResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class ServiceCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    price: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Service name must not be empty")
+        return value
+
+
+class ServiceUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    price: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+
+
+class ServiceResponse(BaseSchema):
+    id: int
+    name: str
+    price: Decimal

@@ -1,4 +1,4 @@
-function EmployeeSearch({ value = '', onChange, placeholder = 'Search by employee code or username' }) {
+function EmployeeSearch({ value = '', onChange, placeholder = 'Search by username or full name' }) {
   return (
     <label className="search-field">
       <span className="sr-only">Search employees</span>
@@ -13,3 +13,4 @@ function EmployeeSearch({ value = '', onChange, placeholder = 'Search by employe
 }
 
 export default EmployeeSearch
+

@@ -104,7 +104,9 @@ function Dashboard() {
         <nav className="quick-actions" aria-label="Quick actions">
           <Link to="/bills/new" className="button button-primary">New bill</Link>
           <Link to="/patients" className="button button-secondary">Patients</Link>
-          <Link to="/reports" className="button button-secondary">Reports</Link>
+          {employee?.role === 'Admin' && (
+            <Link to="/reports" className="button button-secondary">Reports</Link>
+          )}
         </nav>
       </header>
       <section className="summary-grid dashboard-summary" aria-label="Today's summary">

@@ -51,25 +51,22 @@ def calculate_bill(
         )
 
     subtotal = money(subtotal)
-    raw_discount = Decimal(discount)
+    discount_percent = Decimal(discount)
     tax_rate_percent = Decimal(tax_rate_percent)
 
-    if raw_discount < 0:
-        raise ValueError("Discount must not be negative")
+    if discount_percent < 0 or discount_percent > 100:
+        raise ValueError("Discount percentage must be between 0 and 100")
     if tax_rate_percent < 0:
         raise ValueError("Tax rate must not be negative")
 
-    discount = money(raw_discount)
-    if discount > subtotal:
-        raise ValueError("Discount must not exceed subtotal")
-
-    taxable_amount = subtotal - discount
+    discount_amount = money(subtotal * discount_percent / Decimal("100"))
+    taxable_amount = subtotal - discount_amount
     tax = money(taxable_amount * tax_rate_percent / Decimal("100"))
     grand_total = money(taxable_amount + tax)
 
     totals = {
         "subtotal": subtotal,
-        "discount": discount,
+        "discount": discount_amount,
         "tax": tax,
         "grand_total": grand_total,
     }

@@ -40,7 +40,15 @@ function effectiveTaxRate(bill) {
 
 function BillEditForm({ bill, patients, isSaving, error, onCancel, onSubmit }) {
   const [patientId, setPatientId] = useState(String(bill.patient_id))
-  const [discount, setDiscount] = useState(String(bill.discount))
+  
+  const initialPercent = useMemo(() => {
+    const sub = Number(bill.subtotal) || 0
+    const disc = Number(bill.discount) || 0
+    if (sub <= 0) return 0
+    return Math.round((disc / sub) * 10000) / 100
+  }, [bill.subtotal, bill.discount])
+
+  const [discount, setDiscount] = useState(String(initialPercent))
   const [paymentMode, setPaymentMode] = useState(bill.payment_mode)
   const paymentModes = ['Cash', 'Card', 'UPI']
 
@@ -48,7 +56,7 @@ function BillEditForm({ bill, patients, isSaving, error, onCancel, onSubmit }) {
     event.preventDefault()
     onSubmit({
       patient_id: Number(patientId),
-      discount: Number(discount),
+      discount: Number(discount) || 0,
       payment_mode: paymentMode,
     })
   }
@@ -67,11 +75,12 @@ function BillEditForm({ bill, patients, isSaving, error, onCancel, onSubmit }) {
       </label>
       <div className="form-grid">
         <label>
-          Discount
+          Discount (%)
           <input
             type="number"
             min="0"
-            step="0.01"
+            max="100"
+            step="0.1"
             value={discount}
             onChange={(event) => setDiscount(event.target.value)}
             disabled={isSaving}
@@ -308,6 +317,7 @@ function Bills() {
                   <tr>
                     <th>Invoice</th>
                     <th>Patient</th>
+                    <th>Phone</th>
                     <th>Date</th>
                     <th>Payment</th>
                     <th className="numeric">Total</th>
@@ -316,7 +326,7 @@ function Bills() {
                 </thead>
                 <tbody>
                   {visibleBills.length === 0 ? (
-                    <tr><td colSpan="6" className="empty-state">No bills found.</td></tr>
+                    <tr><td colSpan="7" className="empty-state">No bills found.</td></tr>
                   ) : visibleBills.map((bill) => {
                     const patient = patientMap.get(bill.patient_id)
                     return (
@@ -326,6 +336,7 @@ function Bills() {
                           <span className="table-primary">{patient?.full_name || `Patient #${bill.patient_id}`}</span>
                           {patient?.patient_code && <small>{patient.patient_code}</small>}
                         </td>
+                        <td>{patient?.phone || '—'}</td>
                         <td>{dateFormatter.format(new Date(bill.created_at))}</td>
                         <td>{bill.payment_mode}</td>
                         <td className="numeric"><strong>{currencyFormatter.format(Number(bill.grand_total))}</strong></td>
@@ -392,6 +403,7 @@ function Bills() {
             paymentMode={viewedBill.payment_mode}
             canPrint
             onPrint={() => window.print()}
+            employeeName={viewedBill?.employee?.full_name}
           />
         )}
       </Modal>

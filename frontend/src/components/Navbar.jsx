@@ -6,7 +6,7 @@ function Navbar({ employee, onLogout }) {
   return (
     <header className="navbar">
       <div>
-        <span className="navbar-label">Hospital Billing System</span>
+        {/* <span className="navbar-label">Hospital Billing System</span> */}
       </div>
       <div className="navbar-user">
         <span className="avatar" aria-hidden="true">{initial}</span>
@@ -14,10 +14,12 @@ function Navbar({ employee, onLogout }) {
           <strong>{employee.full_name}</strong>
           <small>{employee.role}</small>
         </div>
-        <Button variant="ghost" onClick={onLogout}>Sign out</Button>
+        <Button variant="danger-ghost" onClick={onLogout}>Sign out</Button>
       </div>
     </header>
   )
 }
 
 export default Navbar
+
+

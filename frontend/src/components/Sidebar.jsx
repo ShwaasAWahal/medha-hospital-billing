@@ -1,14 +1,24 @@
 import { NavLink } from 'react-router-dom'
 
-const links = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/patients', label: 'Patients' },
-  { to: '/bills', label: 'Bills' },
-  { to: '/reports', label: 'Reports' },
-  { to: '/settings', label: 'Settings' },
-]
+function Sidebar({ employee }) {
+  const links = [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/patients', label: 'Patients' },
+    { to: '/services', label: 'Services' },
+  ]
 
-function Sidebar() {
+  if (employee?.role === 'Admin') {
+    links.push(
+      { to: '/employees', label: 'Employees' },
+      { to: '/reports', label: 'Reports' },
+    )
+  }
+
+  links.push(
+    { to: '/bills', label: 'Bills' },
+    { to: '/settings', label: 'Settings' },
+  )
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -31,3 +41,4 @@ function Sidebar() {
 }
 
 export default Sidebar
+

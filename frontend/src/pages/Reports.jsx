@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Navigate, useOutletContext } from 'react-router-dom'
 import {
   BarElement,
   CategoryScale,
@@ -91,11 +92,13 @@ const chartOptions = {
 }
 
 function Reports() {
+  const { employee: currentUser } = useOutletContext()
   const [bills, setBills] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
   const loadReports = useCallback(async () => {
+    if (!currentUser || currentUser.role !== 'Admin') return
     setIsLoading(true)
     setError('')
     try {
@@ -105,11 +108,13 @@ function Reports() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [currentUser])
 
   useEffect(() => {
-    loadReports()
-  }, [loadReports])
+    if (currentUser && currentUser.role === 'Admin') {
+      loadReports()
+    }
+  }, [loadReports, currentUser])
 
   const report = useMemo(() => {
     const today = startOfDay(new Date())
@@ -185,6 +190,10 @@ function Reports() {
       },
     }
   }, [bills])
+
+  if (!currentUser || currentUser.role !== 'Admin') {
+    return <Navigate to="/dashboard" replace />
+  }
 
   if (isLoading) {
     return <LoadingState message="Loading reports…" />

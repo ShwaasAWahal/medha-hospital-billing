@@ -17,6 +17,7 @@ function BillForm({
   patientError,
   onRetryPatients,
   services,
+  availableServices = [],
   onServiceChange,
   onAddService,
   onRemoveService,
@@ -31,6 +32,7 @@ function BillForm({
   error,
   onSubmit,
   onPrint,
+  employeeName,
 }) {
   const previewServices = savedBill
     ? savedBill.items.map((item) => ({
@@ -111,15 +113,31 @@ function BillForm({
               <div className="service-entry" key={service.id}>
                 <label>
                   Service name
-                  <input
-                    type="text"
-                    value={service.service_name}
-                    onChange={(event) => onServiceChange(service.id, 'service_name', event.target.value)}
-                    placeholder="e.g. Consultation"
-                    maxLength="200"
+                  <select
+                    value={availableServices.find((s) => s.name === service.service_name)?.id ?? (service.service_name ? 'custom' : '')}
+                    onChange={(event) => {
+                      const selectedId = Number(event.target.value)
+                      const selected = availableServices.find((s) => s.id === selectedId)
+                      if (selected) {
+                        onServiceChange(service.id, 'service_name', selected.name)
+                        onServiceChange(service.id, 'unit_price', String(selected.price))
+                      }
+                    }}
                     disabled={isSaving}
                     required
-                  />
+                  >
+                    <option value="" disabled>Select service</option>
+                    {availableServices.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({currencyFormatter.format(Number(s.price))})
+                      </option>
+                    ))}
+                    {service.service_name && !availableServices.some((s) => s.name === service.service_name) && (
+                      <option value="custom" disabled>
+                        {service.service_name} ({currencyFormatter.format(Number(service.unit_price))})
+                      </option>
+                    )}
+                  </select>
                 </label>
                 <label>
                   Quantity
@@ -167,14 +185,15 @@ function BillForm({
           <h2>Payment</h2>
           <div className="form-grid">
             <label>
-              Discount
+              Discount (%)
               <input
                 type="number"
                 min="0"
-                step="0.01"
+                max="100"
+                step="0.1"
                 value={discount}
                 onChange={onDiscountChange}
-                placeholder="0.00"
+                placeholder="0.0"
                 disabled={isSaving}
               />
             </label>
@@ -220,6 +239,7 @@ function BillForm({
         grandTotal={previewTotals.grandTotal}
         paymentMode={paymentMode}
         canPrint={Boolean(savedBill)}
+        employeeName={savedBill?.employee?.full_name || employeeName}
         onPrint={onPrint}
       />
     </div>

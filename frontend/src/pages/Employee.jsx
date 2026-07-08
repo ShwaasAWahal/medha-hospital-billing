@@ -1,27 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Navigate, useOutletContext } from 'react-router-dom'
 import Button from '../components/Button.jsx'
 import Modal from '../components/Modal.jsx'
 import { ErrorState, LoadingState } from '../components/PageState.jsx'
 import Pagination from '../components/Pagination.jsx'
-import PatientSearch from '../components/PatientSearch.jsx'
+import EmployeeSearch from '../components/EmployeeSearch.jsx'
 import { getApiErrorMessage } from '../services/api.js'
 import {
-  createPatient,
-  deletePatient,
-  getPatients,
-  updatePatient,
-} from '../services/patientService.js'
+  createEmployee,
+  deleteEmployee,
+  getEmployees,
+  updateEmployee,
+} from '../services/employeeService.js'
 
 const PAGE_SIZE = 8
 
-function PatientForm({ initialPatient, isSaving, error, onCancel, onSubmit }) {
+function EmployeeForm({ initialEmployee, isSaving, error, onCancel, onSubmit }) {
   const [form, setForm] = useState({
-    patient_code: initialPatient?.patient_code ?? '',
-    full_name: initialPatient?.full_name ?? '',
-    gender: initialPatient?.gender ?? '',
-    age: initialPatient?.age ?? '',
-    phone: initialPatient?.phone ?? '',
-    address: initialPatient?.address ?? '',
+    username: initialEmployee?.username ?? '',
+    password: '',
+    full_name: initialEmployee?.full_name ?? '',
+    role: initialEmployee?.role ?? '',
   })
 
   function updateField(event) {
@@ -31,24 +30,24 @@ function PatientForm({ initialPatient, isSaving, error, onCancel, onSubmit }) {
 
   function handleSubmit(event) {
     event.preventDefault()
-    onSubmit({
-      ...form,
-      age: Number(form.age),
-      phone: form.phone || null,
-      address: form.address || null,
-    })
+    const payload = { ...form }
+    if (initialEmployee && !payload.password) {
+      delete payload.password
+    }
+    onSubmit(payload)
   }
 
   return (
     <form className="form-stack" onSubmit={handleSubmit} aria-busy={isSaving}>
       <div className="form-grid">
         <label>
-          Patient code
+          Username
           <input
-            name="patient_code"
-            value={form.patient_code}
+            name="username"
+            value={form.username}
             onChange={updateField}
-            maxLength="50"
+            minLength="3"
+            maxLength="100"
             disabled={isSaving}
             required
           />
@@ -59,58 +58,38 @@ function PatientForm({ initialPatient, isSaving, error, onCancel, onSubmit }) {
             name="full_name"
             value={form.full_name}
             onChange={updateField}
+            minLength="1"
             maxLength="150"
             disabled={isSaving}
             required
           />
         </label>
         <label>
-          Gender
+          Role
           <select
-            name="gender"
-            value={form.gender}
+            name="role"
+            value={form.role}
             onChange={updateField}
             disabled={isSaving}
             required
           >
-            <option value="" disabled>Select gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
+            <option value="" disabled>Select role</option>
+            <option value="Admin">Admin</option>
+            <option value="Receptionist">Receptionist</option>
           </select>
         </label>
         <label>
-          Age
+          Password
           <input
-            name="age"
-            type="number"
-            min="0"
-            max="150"
-            value={form.age}
+            name="password"
+            type="password"
+            value={form.password}
             onChange={updateField}
+            minLength="8"
+            maxLength="72"
             disabled={isSaving}
-            required
-          />
-        </label>
-        <label>
-          Phone
-          <input
-            name="phone"
-            type="tel"
-            value={form.phone}
-            onChange={updateField}
-            maxLength="20"
-            disabled={isSaving}
-          />
-        </label>
-        <label className="full-width-field">
-          Address
-          <textarea
-            name="address"
-            value={form.address}
-            onChange={updateField}
-            rows="3"
-            disabled={isSaving}
+            required={!initialEmployee}
+            placeholder={initialEmployee ? 'Leave blank to keep current' : ''}
           />
         </label>
       </div>
@@ -123,67 +102,75 @@ function PatientForm({ initialPatient, isSaving, error, onCancel, onSubmit }) {
               <span className="spinner" aria-hidden="true" />
               Saving…
             </>
-          ) : 'Save patient'}
+          ) : 'Save employee'}
         </Button>
       </div>
     </form>
   )
 }
 
-function Patients() {
-  const [patients, setPatients] = useState([])
+function Employees() {
+  const { employee: currentUser } = useOutletContext()
+
+  const [employees, setEmployees] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingPatient, setEditingPatient] = useState(null)
-  const [patientToDelete, setPatientToDelete] = useState(null)
+  const [editingEmployee, setEditingEmployee] = useState(null)
+  const [employeeToDelete, setEmployeeToDelete] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [operationError, setOperationError] = useState('')
 
-  const loadPatients = useCallback(async () => {
+  const loadEmployees = useCallback(async () => {
+    if (!currentUser || currentUser.role !== 'Admin') return
     setIsLoading(true)
     setLoadError('')
     try {
-      setPatients(await getPatients())
+      setEmployees(await getEmployees())
     } catch (error) {
-      setLoadError(getApiErrorMessage(error, 'Unable to load patients.'))
+      setLoadError(getApiErrorMessage(error, 'Unable to load employees.'))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [currentUser])
 
   useEffect(() => {
-    loadPatients()
-  }, [loadPatients])
+    if (currentUser && currentUser.role === 'Admin') {
+      loadEmployees()
+    }
+  }, [loadEmployees, currentUser])
 
-  const filteredPatients = useMemo(() => {
+  const filteredEmployees = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()
-    if (!query) return patients
-    return patients.filter((patient) => (
-      patient.patient_code.toLowerCase().includes(query)
-      || patient.full_name.toLowerCase().includes(query)
-      || patient.phone?.toLowerCase().includes(query)
+    if (!query) return employees
+    return employees.filter((employee) => (
+      employee.username.toLowerCase().includes(query)
+      || employee.full_name.toLowerCase().includes(query)
     ))
-  }, [patients, searchTerm])
+  }, [employees, searchTerm])
 
-  const totalPages = Math.max(1, Math.ceil(filteredPatients.length / PAGE_SIZE))
+  if (!currentUser || currentUser.role !== 'Admin') {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / PAGE_SIZE))
   const safePage = Math.min(currentPage, totalPages)
-  const visiblePatients = filteredPatients.slice(
+  const visibleEmployees = filteredEmployees.slice(
     (safePage - 1) * PAGE_SIZE,
     safePage * PAGE_SIZE,
   )
 
   function openCreateModal() {
-    setEditingPatient(null)
+    setEditingEmployee(null)
     setOperationError('')
     setIsFormOpen(true)
   }
 
-  function openEditModal(patient) {
-    setEditingPatient(patient)
+  function openEditModal(employee) {
+    setEditingEmployee(employee)
     setOperationError('')
     setIsFormOpen(true)
   }
@@ -192,27 +179,27 @@ function Patients() {
     if (!isSaving) setIsFormOpen(false)
   }
 
-  async function savePatient(values) {
+  async function saveEmployee(values) {
     setIsSaving(true)
     setOperationError('')
     try {
-      if (editingPatient) {
-        await updatePatient(editingPatient.id, values)
+      if (editingEmployee) {
+        await updateEmployee(editingEmployee.id, values)
       } else {
-        await createPatient(values)
+        await createEmployee(values)
       }
       setIsFormOpen(false)
       setCurrentPage(1)
-      await loadPatients()
+      await loadEmployees()
     } catch (error) {
-      setOperationError(getApiErrorMessage(error, 'Unable to save patient.'))
+      setOperationError(getApiErrorMessage(error, 'Unable to save employee.'))
     } finally {
       setIsSaving(false)
     }
   }
 
-  function requestDelete(patient) {
-    setPatientToDelete(patient)
+  function requestDelete(employee) {
+    setEmployeeToDelete(employee)
     setOperationError('')
   }
 
@@ -220,12 +207,12 @@ function Patients() {
     setIsDeleting(true)
     setOperationError('')
     try {
-      await deletePatient(patientToDelete.id)
-      setPatientToDelete(null)
+      await deleteEmployee(employeeToDelete.id)
+      setEmployeeToDelete(null)
       setCurrentPage(1)
-      await loadPatients()
+      await loadEmployees()
     } catch (error) {
-      setOperationError(getApiErrorMessage(error, 'Unable to delete patient.'))
+      setOperationError(getApiErrorMessage(error, 'Unable to delete employee.'))
     } finally {
       setIsDeleting(false)
     }
@@ -235,57 +222,55 @@ function Patients() {
     <div>
       <header className="page-heading heading-row">
         <div>
-          <h1>Patients</h1>
-          <p>View and manage patient records.</p>
+          <h1>Employees</h1>
+          <p>View and manage employee accounts.</p>
         </div>
-        <Button onClick={openCreateModal}>Add patient</Button>
+        <Button onClick={openCreateModal}>Add employee</Button>
       </header>
       <section className="panel">
         <div className="toolbar">
-          <PatientSearch
+          <EmployeeSearch
             value={searchTerm}
             onChange={(event) => {
               setSearchTerm(event.target.value)
               setCurrentPage(1)
             }}
-            placeholder="Search by code, name, or phone"
+            placeholder="Search by username or full name"
           />
-          <span className="record-count">{filteredPatients.length} patients</span>
+          <span className="record-count">{filteredEmployees.length} employees</span>
         </div>
         {isLoading ? (
-          <LoadingState message="Loading patients…" />
+          <LoadingState message="Loading employees…" />
         ) : loadError ? (
-          <ErrorState message={loadError} onRetry={loadPatients} />
+          <ErrorState message={loadError} onRetry={loadEmployees} />
         ) : (
           <>
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Patient code</th>
+                    <th>Username</th>
                     <th>Name</th>
-                    <th>Gender</th>
-                    <th>Age</th>
-                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Created At</th>
                     <th><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {visiblePatients.length === 0 ? (
+                  {visibleEmployees.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="empty-state">No patients found.</td>
+                      <td colSpan="5" className="empty-state">No employees found.</td>
                     </tr>
-                  ) : visiblePatients.map((patient) => (
-                    <tr key={patient.id}>
-                      <td><strong>{patient.patient_code}</strong></td>
-                      <td>{patient.full_name}</td>
-                      <td>{patient.gender}</td>
-                      <td>{patient.age}</td>
-                      <td>{patient.phone || '—'}</td>
+                  ) : visibleEmployees.map((employee) => (
+                    <tr key={employee.id}>
+                      <td><strong>{employee.username}</strong></td>
+                      <td>{employee.full_name}</td>
+                      <td>{employee.role}</td>
+                      <td>{new Date(employee.created_at).toLocaleDateString()}</td>
                       <td>
                         <div className="table-actions">
-                          <Button variant="ghost" onClick={() => openEditModal(patient)}>Edit</Button>
-                          <Button variant="danger-ghost" onClick={() => requestDelete(patient)}>Delete</Button>
+                          <Button variant="ghost" onClick={() => openEditModal(employee)}>Edit</Button>
+                          <Button variant="danger-ghost" onClick={() => requestDelete(employee)}>Delete</Button>
                         </div>
                       </td>
                     </tr>
@@ -297,7 +282,7 @@ function Patients() {
               currentPage={safePage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
-              label="Patient table pagination"
+              label="Employee table pagination"
             />
           </>
         )}
@@ -305,41 +290,41 @@ function Patients() {
 
       <Modal
         isOpen={isFormOpen}
-        title={editingPatient ? 'Edit patient' : 'Create patient'}
+        title={editingEmployee ? 'Edit employee' : 'Create employee'}
         onClose={closeFormModal}
       >
-        <PatientForm
-          key={editingPatient?.id ?? 'new'}
-          initialPatient={editingPatient}
+        <EmployeeForm
+          key={editingEmployee?.id ?? 'new'}
+          initialEmployee={editingEmployee}
           isSaving={isSaving}
           error={operationError}
           onCancel={closeFormModal}
-          onSubmit={savePatient}
+          onSubmit={saveEmployee}
         />
       </Modal>
 
       <Modal
-        isOpen={Boolean(patientToDelete)}
-        title="Delete patient"
+        isOpen={Boolean(employeeToDelete)}
+        title="Delete employee"
         onClose={() => {
-          if (!isDeleting) setPatientToDelete(null)
+          if (!isDeleting) setEmployeeToDelete(null)
         }}
       >
         <div className="confirmation-content">
           <p>
-            Delete <strong>{patientToDelete?.full_name}</strong>? This action cannot be undone.
+            Delete employee <strong>{employeeToDelete?.full_name}</strong>? This action cannot be undone.
           </p>
           {operationError && <p className="form-error" role="alert">{operationError}</p>}
           <div className="form-actions">
             <Button
               variant="secondary"
-              onClick={() => setPatientToDelete(null)}
+              onClick={() => setEmployeeToDelete(null)}
               disabled={isDeleting}
             >
               Cancel
             </Button>
             <Button variant="danger" onClick={confirmDelete} disabled={isDeleting}>
-              {isDeleting ? 'Deleting…' : 'Delete patient'}
+              {isDeleting ? 'Deleting…' : 'Delete employee'}
             </Button>
           </div>
         </div>
@@ -348,4 +333,5 @@ function Patients() {
   )
 }
 
-export default Patients
+export default Employees
+

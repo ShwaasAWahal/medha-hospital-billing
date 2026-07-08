@@ -9,11 +9,11 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from config import get_settings
-from models import Bill, BillItem, Employee, Patient
+from models import Bill, BillItem, Employee, Patient, Service
 from utils import calculate_bill
 
 
-ModelType = TypeVar("ModelType", Bill, BillItem, Employee, Patient)
+ModelType = TypeVar("ModelType", Bill, BillItem, Employee, Patient, Service)
 
 PATIENT_FIELDS = {
     "patient_code",
@@ -27,6 +27,7 @@ BILL_CREATE_FIELDS = {"patient_id", "employee_id", "discount", "payment_mode"}
 BILL_UPDATE_FIELDS = {"patient_id", "discount", "payment_mode"}
 BILL_ITEM_FIELDS = {"service_name", "quantity", "unit_price"}
 EMPLOYEE_FIELDS = {"username", "password_hash", "full_name", "role"}
+SERVICE_FIELDS = {"name", "price"}
 
 
 def _validated_values(
@@ -237,10 +238,14 @@ def update_bill(
         return None
 
     bill_values = _validated_values(values, BILL_UPDATE_FIELDS)
-    discount = bill_values.get("discount", bill.discount)
+    if "discount" in bill_values:
+        discount_percent = Decimal(bill_values["discount"])
+    else:
+        discount_percent = (bill.discount / bill.subtotal * Decimal("100")) if bill.subtotal > 0 else Decimal("0.00")
+
     calculated_items, totals = calculate_bill(
         [_item_values(item) for item in bill.items],
-        discount,
+        discount_percent,
         get_settings().tax_rate_percent,
     )
 
@@ -273,9 +278,10 @@ def add_bill_item(
         return None
 
     new_item_values = _validated_values(values, BILL_ITEM_FIELDS)
+    discount_percent = (bill.discount / bill.subtotal * Decimal("100")) if bill.subtotal > 0 else Decimal("0.00")
     calculated_items, totals = calculate_bill(
         [*[_item_values(item) for item in bill.items], new_item_values],
-        bill.discount,
+        discount_percent,
         get_settings().tax_rate_percent,
     )
     item = BillItem(**calculated_items[-1])
@@ -298,9 +304,10 @@ def remove_bill_item(db: Session, item_id: int) -> bool:
 
     bill = item.bill
     remaining_items = [existing for existing in bill.items if existing.id != item_id]
+    discount_percent = (bill.discount / bill.subtotal * Decimal("100")) if bill.subtotal > 0 else Decimal("0.00")
     calculated_items, totals = calculate_bill(
         [_item_values(existing) for existing in remaining_items],
-        bill.discount,
+        discount_percent,
         get_settings().tax_rate_percent,
     )
 
@@ -355,3 +362,40 @@ def get_employee_by_id(db: Session, employee_id: int) -> Employee | None:
 def get_employee_by_username(db: Session, username: str) -> Employee | None:
     statement = select(Employee).where(Employee.username == username)
     return db.scalar(statement)
+
+
+# Services
+
+def create_service(db: Session, values: Mapping[str, Any]) -> Service:
+    service = Service(**_validated_values(values, SERVICE_FIELDS))
+    return _save(db, service)
+
+
+def update_service(
+    db: Session, service_id: int, values: Mapping[str, Any]
+) -> Service | None:
+    service = db.get(Service, service_id)
+    if service is None:
+        return None
+    return _apply_updates(db, service, values, SERVICE_FIELDS)
+
+
+def delete_service(db: Session, service_id: int) -> bool:
+    service = db.get(Service, service_id)
+    if service is None:
+        return False
+    _delete(db, service)
+    return True
+
+
+def get_service_by_id(db: Session, service_id: int) -> Service | None:
+    return db.get(Service, service_id)
+
+
+def get_all_services(
+    db: Session, offset: int = 0, limit: int | None = None
+) -> list[Service]:
+    statement = _with_pagination(
+        select(Service).order_by(Service.name), offset, limit
+    )
+    return list(db.scalars(statement).all())

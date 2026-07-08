@@ -1,28 +1,29 @@
 import { requestData } from './api.js'
 
-export async function getPatients() {
-  return requestData({ method: 'get', url: '/patients' })
+export async function getEmployees() {
+  return requestData({ method: 'get', url: '/employees' })
 }
 
-export async function getPatient(patientId) {
-  return requestData({ method: 'get', url: `/patients/${encodeURIComponent(patientId)}` })
+export async function getEmployee(employeeId) {
+  return requestData({ method: 'get', url: `/employees/${encodeURIComponent(employeeId)}` })
 }
 
-export async function createPatient(patient) {
-  return requestData({ method: 'post', url: '/patients', data: patient })
+export async function createEmployee(employee) {
+  return requestData({ method: 'post', url: '/employees', data: employee })
 }
 
-export async function updatePatient(patientId, patient) {
+export async function updateEmployee(employeeId, employee) {
   return requestData({
     method: 'put',
-    url: `/patients/${encodeURIComponent(patientId)}`,
-    data: patient,
+    url: `/employees/${encodeURIComponent(employeeId)}`,
+    data: employee,
   })
 }
 
-export async function deletePatient(patientId) {
+export async function deleteEmployee(employeeId) {
   return requestData({
     method: 'delete',
-    url: `/patients/${encodeURIComponent(patientId)}`,
+    url: `/employees/${encodeURIComponent(employeeId)}`,
   })
 }
+

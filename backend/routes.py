@@ -30,6 +30,9 @@ from schemas import (
     PatientCreate,
     PatientResponse,
     PatientUpdate,
+    ServiceCreate,
+    ServiceResponse,
+    ServiceUpdate,
     Token,
 )
 
@@ -309,3 +312,58 @@ def delete_employee(
     if not deleted:
         raise HTTPException(status_code=404, detail="Employee not found")
     return MessageResponse(message="Employee deleted")
+
+
+# Services
+
+@router.post(
+    "/services",
+    response_model=ServiceResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["services"],
+)
+def create_service(
+    payload: ServiceCreate,
+    db: Annotated[Session, Depends(get_db)],
+    _current_employee: StaffEmployee,
+) -> ServiceResponse:
+    return _write(lambda: crud.create_service(db, payload.model_dump()))
+
+
+@router.get("/services", response_model=list[ServiceResponse], tags=["services"])
+def list_services(
+    db: Annotated[Session, Depends(get_db)],
+    _current_employee: StaffEmployee,
+) -> list[ServiceResponse]:
+    return crud.get_all_services(db)
+
+
+@router.put("/services/{service_id}", response_model=ServiceResponse, tags=["services"])
+def update_service(
+    service_id: int,
+    payload: ServiceUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    _current_employee: StaffEmployee,
+) -> ServiceResponse:
+    service = _write(
+        lambda: crud.update_service(
+            db, service_id, payload.model_dump(exclude_unset=True)
+        )
+    )
+    if service is None:
+        raise HTTPException(status_code=404, detail="Service not found")
+    return service
+
+
+@router.delete(
+    "/services/{service_id}", response_model=MessageResponse, tags=["services"]
+)
+def delete_service(
+    service_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    _current_employee: StaffEmployee,
+) -> MessageResponse:
+    deleted = _write(lambda: crud.delete_service(db, service_id))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Service not found")
+    return MessageResponse(message="Service deleted")

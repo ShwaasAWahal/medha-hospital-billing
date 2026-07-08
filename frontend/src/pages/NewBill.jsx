@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import BillForm from '../components/BillForm.jsx'
 import { getApiErrorMessage } from '../services/api.js'
 import { createBill } from '../services/billService.js'
 import { getPatients } from '../services/patientService.js'
+import { getServices } from '../services/serviceService.js'
 
 const configuredTaxRate = Number(import.meta.env.VITE_TAX_RATE_PERCENT ?? 18)
 const TAX_RATE = Number.isFinite(configuredTaxRate) && configuredTaxRate >= 0
@@ -25,12 +27,14 @@ function roundMoney(value) {
 }
 
 function NewBill() {
+  const { employee } = useOutletContext()
   const [patients, setPatients] = useState([])
   const [patientSearch, setPatientSearch] = useState('')
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [isPatientLoading, setIsPatientLoading] = useState(true)
   const [patientError, setPatientError] = useState('')
   const [services, setServices] = useState(() => [createServiceRow()])
+  const [availableServices, setAvailableServices] = useState([])
   const [discount, setDiscount] = useState('0')
   const [paymentMode, setPaymentMode] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -41,9 +45,14 @@ function NewBill() {
     setIsPatientLoading(true)
     setPatientError('')
     try {
-      setPatients(await getPatients())
+      const [patientData, serviceData] = await Promise.all([
+        getPatients(),
+        getServices(),
+      ])
+      setPatients(patientData)
+      setAvailableServices(serviceData)
     } catch (error) {
-      setPatientError(getApiErrorMessage(error, 'Unable to load patients.'))
+      setPatientError(getApiErrorMessage(error, 'Unable to load patient or service data.'))
     } finally {
       setIsPatientLoading(false)
     }
@@ -68,7 +77,8 @@ function NewBill() {
       (Number(service.quantity) || 0) * (Number(service.unit_price) || 0),
     ))
     const subtotal = roundMoney(lineTotals.reduce((sum, total) => sum + total, 0))
-    const discountAmount = roundMoney(Math.max(0, Number(discount) || 0))
+    const discountPercent = Math.max(0, Math.min(100, Number(discount) || 0))
+    const discountAmount = roundMoney(subtotal * (discountPercent / 100))
     const taxableAmount = Math.max(0, subtotal - discountAmount)
     const tax = roundMoney(taxableAmount * TAX_RATE / 100)
 
@@ -120,7 +130,10 @@ function NewBill() {
     if (services.some((service) => service.unit_price === '' || Number(service.unit_price) < 0)) {
       return 'Service prices must be zero or greater.'
     }
-    if (totals.discount > totals.subtotal) return 'Discount cannot exceed subtotal.'
+    const discountPercent = Number(discount) || 0
+    if (discountPercent < 0 || discountPercent > 100) {
+      return 'Discount percentage must be between 0 and 100.'
+    }
     if (!paymentMode) return 'Select a payment mode.'
     return ''
   }
@@ -138,7 +151,7 @@ function NewBill() {
     try {
       const bill = await createBill({
         patient_id: selectedPatient.id,
-        discount: totals.discount,
+        discount: Number(discount) || 0,
         payment_mode: paymentMode,
         items: services.map((service) => ({
           service_name: service.service_name.trim(),
@@ -170,6 +183,7 @@ function NewBill() {
         patientError={patientError}
         onRetryPatients={loadPatients}
         services={services}
+        availableServices={availableServices}
         onServiceChange={changeService}
         onAddService={addService}
         onRemoveService={removeService}
@@ -190,6 +204,7 @@ function NewBill() {
         error={saveError}
         onSubmit={saveBill}
         onPrint={() => window.print()}
+        employeeName={employee?.full_name}
       />
     </div>
   )

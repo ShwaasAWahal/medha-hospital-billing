@@ -5,10 +5,12 @@ import { ErrorState, LoadingState } from './components/PageState.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Bills from './pages/Bills.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import Employees from './pages/Employee.jsx'
 import Login from './pages/Login.jsx'
 import NewBill from './pages/NewBill.jsx'
 import Patients from './pages/Patients.jsx'
 import Reports from './pages/Reports.jsx'
+import Services from './pages/Services.jsx'
 import Settings from './pages/Settings.jsx'
 import { getDashboard, isAuthenticated, logout } from './services/authService.js'
 import { getApiErrorMessage } from './services/api.js'
@@ -46,7 +48,7 @@ function AppLayout() {
 
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar employee={employee} />
       <div className="app-content">
         <Navbar employee={employee} onLogout={handleLogout} />
         <main className="page-content">
@@ -73,6 +75,8 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/patients" element={<Patients />} />
+        <Route path="/employees" element={<Employees />} />
+        <Route path="/services" element={<Services />} />
         <Route path="/bills" element={<Bills />} />
         <Route path="/bills/new" element={<NewBill />} />
         <Route path="/reports" element={<Reports />} />
@@ -84,3 +88,4 @@ function AppRoutes() {
 }
 
 export default AppRoutes
+

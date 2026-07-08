@@ -95,6 +95,14 @@ class BillItem(Base):
     bill: Mapped[Bill] = relationship(back_populates="items")
 
 
+class Service(Base):
+    __tablename__ = "services"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+
+
 __all__ = [
     "Base",
     "Bill",
@@ -102,4 +110,5 @@ __all__ = [
     "Employee",
     "EmployeeRole",
     "Patient",
+    "Service",
 ]
