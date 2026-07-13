@@ -1,7 +1,7 @@
 {
   "name": "client",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "main.cjs",
   "scripts": {
@@ -32,7 +32,7 @@
   },
   "build": {
     "appId": "com.medhahospital.billing",
-    "productName": "MEDHA HOSPITAL Billing",
+    "productName": "MEDHA-HOSPITAL-Billing",
     "publish": {
       "provider": "github",
       "owner": "ShwaasAWahal",
@@ -46,7 +46,8 @@
       "main.cjs"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "public/logo.ico"
     },
     "mac": {
       "target": "dmg"
