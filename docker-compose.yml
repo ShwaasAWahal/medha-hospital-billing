@@ -6,11 +6,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./hospital_billing.db
-      - JWT_SECRET_KEY=your_production_secret_key_here
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - APP_NAME=MEDHA HOSPITAL
-    volumes:
-      - backend-db:/app
     restart: always
 
   frontend:
@@ -22,6 +20,3 @@ services:
     depends_on:
       - backend
     restart: always
-
-volumes:
-  backend-db:

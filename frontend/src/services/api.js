@@ -3,16 +3,21 @@ import axios from 'axios'
 const TOKEN_KEY = 'hospital_billing_access_token'
 
 export function getAccessToken() {
-  return window.sessionStorage.getItem(TOKEN_KEY)
+  return window.sessionStorage.getItem(TOKEN_KEY) || window.localStorage.getItem(TOKEN_KEY)
 }
 
-export function setAccessToken(token) {
+export function setAccessToken(token, remember = false) {
   if (!token) throw new Error('An access token is required')
-  window.sessionStorage.setItem(TOKEN_KEY, token)
+  if (remember) {
+    window.localStorage.setItem(TOKEN_KEY, token)
+  } else {
+    window.sessionStorage.setItem(TOKEN_KEY, token)
+  }
 }
 
 export function clearAccessToken() {
   window.sessionStorage.removeItem(TOKEN_KEY)
+  window.localStorage.removeItem(TOKEN_KEY)
 }
 
 export function getApiErrorMessage(error, fallbackMessage) {
@@ -56,9 +61,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       clearAccessToken()
 
-      if (window.location.pathname !== '/login' && !redirectingToLogin) {
+      if (!window.location.hash.includes('/login') && !redirectingToLogin) {
         redirectingToLogin = true
-        window.location.assign('/login')
+        window.location.hash = '#/login'
+        setTimeout(() => {
+          redirectingToLogin = false
+        }, 1000)
       }
     }
 
