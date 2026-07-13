@@ -248,10 +248,13 @@ def create_bill(
         _validated_values(item_values, BILL_ITEM_FIELDS)
         for item_values in (items or ())
     ]
+    settings_dict = get_hospital_settings(db)
+    tax_rate = Decimal(settings_dict.get("tax_rate", "18"))
+
     calculated_items, totals = calculate_bill(
         raw_items,
         discount,
-        get_settings().tax_rate_percent,
+        tax_rate,
     )
 
     bill = Bill(
@@ -300,10 +303,13 @@ def update_bill(
     else:
         discount_percent = (bill.discount / bill.subtotal * Decimal("100")) if bill.subtotal > 0 else Decimal("0.00")
 
+    settings_dict = get_hospital_settings(db)
+    tax_rate = Decimal(settings_dict.get("tax_rate", "18"))
+
     calculated_items, totals = calculate_bill(
         [_item_values(item) for item in bill.items],
         discount_percent,
-        get_settings().tax_rate_percent,
+        tax_rate,
     )
 
     try:
@@ -336,10 +342,13 @@ def add_bill_item(
 
     new_item_values = _validated_values(values, BILL_ITEM_FIELDS)
     discount_percent = (bill.discount / bill.subtotal * Decimal("100")) if bill.subtotal > 0 else Decimal("0.00")
+    settings_dict = get_hospital_settings(db)
+    tax_rate = Decimal(settings_dict.get("tax_rate", "18"))
+
     calculated_items, totals = calculate_bill(
         [*[_item_values(item) for item in bill.items], new_item_values],
         discount_percent,
-        get_settings().tax_rate_percent,
+        tax_rate,
     )
     item = BillItem(**calculated_items[-1])
 
@@ -362,10 +371,13 @@ def remove_bill_item(db: Session, item_id: int) -> bool:
     bill = item.bill
     remaining_items = [existing for existing in bill.items if existing.id != item_id]
     discount_percent = (bill.discount / bill.subtotal * Decimal("100")) if bill.subtotal > 0 else Decimal("0.00")
+    settings_dict = get_hospital_settings(db)
+    tax_rate = Decimal(settings_dict.get("tax_rate", "18"))
+
     calculated_items, totals = calculate_bill(
         [_item_values(existing) for existing in remaining_items],
         discount_percent,
-        get_settings().tax_rate_percent,
+        tax_rate,
     )
 
     try:

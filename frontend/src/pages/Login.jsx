@@ -7,6 +7,7 @@ function Login() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -16,7 +17,7 @@ function Login() {
     setIsLoading(true)
 
     try {
-      await login(username.trim(), password)
+      await login(username.trim(), password, rememberMe)
       navigate('/dashboard', { replace: true })
     } catch (loginError) {
       if (loginError instanceof InvalidCredentialsError) {
@@ -33,7 +34,7 @@ function Login() {
     <main className="login-page">
       <section className="login-card">
         <div className="brand login-brand">
-          <img src="/logo.png" alt="MEDHA HOSPITAL Logo" className="brand-logo" />
+          <img src="logo.png" alt="MEDHA HOSPITAL Logo" className="brand-logo" />
           <span>MEDHA HOSPITAL</span>
         </div>
         <div className="page-heading">
@@ -65,6 +66,15 @@ function Login() {
               disabled={isLoading}
               required
             />
+          </label>
+          <label className="checkbox-container">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+              disabled={isLoading}
+            />
+            Remember me
           </label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <Button type="submit" className="button-block" disabled={isLoading}>

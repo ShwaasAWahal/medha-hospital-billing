@@ -12,7 +12,7 @@ export class InvalidCredentialsError extends Error {
   }
 }
 
-export async function login(username, password) {
+export async function login(username, password, remember = false) {
   const credentials = new URLSearchParams({ username, password })
   try {
     const response = await api.post('/login', credentials, {
@@ -21,7 +21,7 @@ export async function login(username, password) {
       },
     })
 
-    setAccessToken(response.data.access_token)
+    setAccessToken(response.data.access_token, remember)
     return response.data
   } catch (error) {
     if (error.response?.status === 401) {
