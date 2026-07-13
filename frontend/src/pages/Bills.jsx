@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import Button from '../components/Button.jsx'
 import Modal from '../components/Modal.jsx'
 import { ErrorState, LoadingState } from '../components/PageState.jsx'
@@ -107,6 +107,8 @@ function BillEditForm({ bill, patients, isSaving, error, onCancel, onSubmit }) {
 }
 
 function Bills() {
+  const { employee } = useOutletContext()
+  const isAdmin = employee?.role === 'Admin'
   const [bills, setBills] = useState([])
   const [patients, setPatients] = useState([])
   const [hospitalSettings, setHospitalSettings] = useState(null)
@@ -359,15 +361,17 @@ function Bills() {
                             >
                               Edit
                             </Button>
-                            <Button
-                              variant="danger-ghost"
-                              onClick={() => {
-                                setOperationError('')
-                                setBillToDelete(bill)
-                              }}
-                            >
-                              Delete
-                            </Button>
+                            {isAdmin && (
+                              <Button
+                                variant="danger-ghost"
+                                onClick={() => {
+                                  setOperationError('')
+                                  setBillToDelete(bill)
+                                }}
+                              >
+                                Delete
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

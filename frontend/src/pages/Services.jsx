@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import Button from '../components/Button.jsx'
 import Modal from '../components/Modal.jsx'
 import { ErrorState, LoadingState } from '../components/PageState.jsx'
@@ -83,6 +84,8 @@ function ServiceForm({ initialService, isSaving, error, onCancel, onSubmit }) {
 }
 
 function Services() {
+  const { employee } = useOutletContext()
+  const isAdmin = employee?.role === 'Admin'
   const [services, setServices] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -231,7 +234,9 @@ function Services() {
                       <td>
                         <div className="table-actions">
                           <Button variant="ghost" onClick={() => openEdit(service)}>Edit</Button>
-                          <Button variant="danger-ghost" onClick={() => openDelete(service)}>Delete</Button>
+                          {isAdmin && (
+                            <Button variant="danger-ghost" onClick={() => openDelete(service)}>Delete</Button>
+                          )}
                         </div>
                       </td>
                     </tr>

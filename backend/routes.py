@@ -35,6 +35,7 @@ from schemas import (
     ServiceUpdate,
     HospitalSettingsResponse,
     HospitalSettingsUpdate,
+    AuditLogResponse,
     Token,
 )
 
@@ -165,7 +166,7 @@ def update_patient(
 def delete_patient(
     patient_id: int,
     db: Annotated[Session, Depends(get_db)],
-    _current_employee: StaffEmployee,
+    _current_employee: AdminEmployee,
 ) -> MessageResponse:
     deleted = _write(lambda: crud.delete_patient(db, patient_id))
     if not deleted:
@@ -243,7 +244,7 @@ def update_bill(
 def delete_bill(
     bill_id: int,
     db: Annotated[Session, Depends(get_db)],
-    _current_employee: StaffEmployee,
+    _current_employee: AdminEmployee,
 ) -> MessageResponse:
     deleted = _write(lambda: crud.delete_bill(db, bill_id))
     if not deleted:
@@ -363,7 +364,7 @@ def update_service(
 def delete_service(
     service_id: int,
     db: Annotated[Session, Depends(get_db)],
-    _current_employee: StaffEmployee,
+    _current_employee: AdminEmployee,
 ) -> MessageResponse:
     deleted = _write(lambda: crud.delete_service(db, service_id))
     if not deleted:
@@ -411,3 +412,13 @@ def update_hospital_settings(
         gstin=updated.get("gstin", "GSTIN Placeholder"),
         tax_rate=float(updated.get("tax_rate", "18.0")),
     )
+
+
+# Audit Logs
+
+@router.get("/audit-logs", response_model=list[AuditLogResponse], tags=["audit_logs"])
+def get_audit_logs(
+    db: Annotated[Session, Depends(get_db)],
+    _current_employee: AdminEmployee,
+) -> list[AuditLogResponse]:
+    return crud.get_all_audit_logs(db)

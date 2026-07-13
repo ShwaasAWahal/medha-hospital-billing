@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from database import Base, SessionLocal, engine
 from models import EmployeeRole
 from routes import router
+import audit
 
 
 settings = get_settings()

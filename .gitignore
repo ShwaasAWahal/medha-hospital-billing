@@ -38,4 +38,4 @@ Thumbs.db
 #Other
 codex.txt
 agents/
-missing.txt
+*.txt

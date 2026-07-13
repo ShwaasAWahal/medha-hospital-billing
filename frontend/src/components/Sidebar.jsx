@@ -11,6 +11,7 @@ function Sidebar({ employee }) {
     links.push(
       { to: '/employees', label: 'Employees' },
       { to: '/reports', label: 'Reports' },
+      { to: '/audit-logs', label: 'Audit Logs' },
     )
   }
 

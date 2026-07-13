@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useLocation, useOutletContext } from 'react-router-dom'
 import BillForm from '../components/BillForm.jsx'
 import { getApiErrorMessage } from '../services/api.js'
 import { createBill } from '../services/billService.js'
@@ -28,10 +28,19 @@ function roundMoney(value) {
 }
 
 function NewBill() {
+  const location = useLocation()
   const { employee } = useOutletContext()
   const [patients, setPatients] = useState([])
   const [patientSearch, setPatientSearch] = useState('')
-  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [selectedPatient, setSelectedPatient] = useState(() => {
+    return location.state?.selectedPatient || null
+  })
+
+  useEffect(() => {
+    if (location.state?.selectedPatient) {
+      window.history.replaceState({}, document.title)
+    }
+  }, [location])
   const [isPatientLoading, setIsPatientLoading] = useState(true)
   const [patientError, setPatientError] = useState('')
   const [services, setServices] = useState(() => [createServiceRow()])

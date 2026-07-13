@@ -110,6 +110,28 @@ class HospitalSetting(Base):
     value: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    employee_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    action: Mapped[str] = mapped_column(String(50))
+    target_table: Mapped[str] = mapped_column(String(100))
+    target_id: Mapped[str] = mapped_column(String(100))
+    previous_state: Mapped[str | None] = mapped_column(Text, nullable=True)
+    new_state: Mapped[str | None] = mapped_column(Text, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class InvoiceSequence(Base):
+    __tablename__ = "invoice_sequences"
+
+    prefix: Mapped[str] = mapped_column(String(100), primary_key=True)
+    next_value: Mapped[int] = mapped_column(Integer, default=1)
+
+
 __all__ = [
     "Base",
     "Bill",
@@ -119,4 +141,6 @@ __all__ = [
     "Patient",
     "Service",
     "HospitalSetting",
+    "AuditLog",
+    "InvoiceSequence",
 ]

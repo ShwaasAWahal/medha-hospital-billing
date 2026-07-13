@@ -103,7 +103,7 @@ function Dashboard() {
         </div>
         <nav className="quick-actions" aria-label="Quick actions">
           <Link to="/bills/new" className="button button-primary">New bill</Link>
-          <Link to="/patients" className="button button-secondary">Patients</Link>
+          <Link to="/patients" state={{ openRegister: true }} className="button button-secondary">New patient</Link>
           {employee?.role === 'Admin' && (
             <Link to="/reports" className="button button-secondary">Reports</Link>
           )}

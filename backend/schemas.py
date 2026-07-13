@@ -41,7 +41,7 @@ class EmployeeUpdate(BaseModel):
 
 
 class PatientCreate(BaseModel):
-    patient_code: str = Field(min_length=1, max_length=50)
+    patient_code: str | None = Field(default=None, max_length=50)
     full_name: str = Field(min_length=1, max_length=150)
     gender: str = Field(min_length=1, max_length=30)
     age: int = Field(ge=0, le=150)
@@ -174,3 +174,14 @@ class HospitalSettingsUpdate(BaseModel):
     email: str = Field(min_length=1, max_length=100)
     gstin: str = Field(min_length=1, max_length=100)
     tax_rate: float = Field(ge=0, le=100)
+
+
+class AuditLogResponse(BaseModel):
+    id: int
+    employee_id: int | None
+    action: str
+    target_table: str
+    target_id: str
+    previous_state: str | None
+    new_state: str | None
+    timestamp: datetime

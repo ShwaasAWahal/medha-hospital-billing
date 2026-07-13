@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import Button from '../components/Button.jsx'
 import Modal from '../components/Modal.jsx'
 import { ErrorState, LoadingState } from '../components/PageState.jsx'
@@ -31,28 +32,32 @@ function PatientForm({ initialPatient, isSaving, error, onCancel, onSubmit }) {
 
   function handleSubmit(event) {
     event.preventDefault()
-    onSubmit({
+    const payload = {
       ...form,
       age: Number(form.age),
       phone: form.phone || null,
       address: form.address || null,
-    })
+    }
+    if (!initialPatient) {
+      delete payload.patient_code
+    }
+    onSubmit(payload)
   }
 
   return (
     <form className="form-stack" onSubmit={handleSubmit} aria-busy={isSaving}>
       <div className="form-grid">
-        <label>
-          Patient code
-          <input
-            name="patient_code"
-            value={form.patient_code}
-            onChange={updateField}
-            maxLength="50"
-            disabled={isSaving}
-            required
-          />
-        </label>
+        {initialPatient && (
+          <label>
+            Patient code
+            <input
+              name="patient_code"
+              value={form.patient_code}
+              disabled
+              required
+            />
+          </label>
+        )}
         <label>
           Full name
           <input
@@ -131,10 +136,21 @@ function PatientForm({ initialPatient, isSaving, error, onCancel, onSubmit }) {
 }
 
 function Patients() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { employee } = useOutletContext()
+  const isAdmin = employee?.role === 'Admin'
   const [patients, setPatients] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (location.state?.openRegister) {
+      setIsFormOpen(true)
+      window.history.replaceState({}, document.title)
+    }
+  }, [location])
   const [loadError, setLoadError] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingPatient, setEditingPatient] = useState(null)
@@ -198,12 +214,14 @@ function Patients() {
     try {
       if (editingPatient) {
         await updatePatient(editingPatient.id, values)
+        setIsFormOpen(false)
+        setCurrentPage(1)
+        await loadPatients()
       } else {
-        await createPatient(values)
+        const newPatient = await createPatient(values)
+        setIsFormOpen(false)
+        navigate('/bills/new', { state: { selectedPatient: newPatient } })
       }
-      setIsFormOpen(false)
-      setCurrentPage(1)
-      await loadPatients()
     } catch (error) {
       setOperationError(getApiErrorMessage(error, 'Unable to save patient.'))
     } finally {
@@ -285,7 +303,9 @@ function Patients() {
                       <td>
                         <div className="table-actions">
                           <Button variant="ghost" onClick={() => openEditModal(patient)}>Edit</Button>
-                          <Button variant="danger-ghost" onClick={() => requestDelete(patient)}>Delete</Button>
+                          {isAdmin && (
+                            <Button variant="danger-ghost" onClick={() => requestDelete(patient)}>Delete</Button>
+                          )}
                         </div>
                       </td>
                     </tr>

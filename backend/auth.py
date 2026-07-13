@@ -12,6 +12,7 @@ from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
 from config import get_settings
+from context import current_employee_var
 from crud import get_employee_by_id, get_employee_by_username
 from database import get_db
 from models import Employee, EmployeeRole
@@ -95,6 +96,8 @@ def get_current_employee(
     employee = get_employee_by_id(db, employee_id)
     if employee is None:
         raise credentials_exception()
+    current_employee_var.set(employee.id)
+    db.info["employee_id"] = employee.id
     return employee
 
 

@@ -12,6 +12,7 @@ import Patients from './pages/Patients.jsx'
 import Reports from './pages/Reports.jsx'
 import Services from './pages/Services.jsx'
 import Settings from './pages/Settings.jsx'
+import AuditLogs from './pages/AuditLogs.jsx'
 import { getDashboard, isAuthenticated, logout } from './services/authService.js'
 import { getApiErrorMessage } from './services/api.js'
 
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="/bills" element={<Bills />} />
         <Route path="/bills/new" element={<NewBill />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/audit-logs" element={<AuditLogs />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

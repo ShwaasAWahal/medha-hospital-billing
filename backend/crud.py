@@ -3,17 +3,18 @@
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
+import threading
 from typing import Any, TypeVar
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from config import get_settings
-from models import Bill, BillItem, Employee, Patient, Service, HospitalSetting
+from models import Bill, BillItem, Employee, Patient, Service, HospitalSetting, AuditLog, InvoiceSequence
 from utils import calculate_bill
 
 
-ModelType = TypeVar("ModelType", Bill, BillItem, Employee, Patient, Service, HospitalSetting)
+ModelType = TypeVar("ModelType", Bill, BillItem, Employee, Patient, Service, HospitalSetting, AuditLog, InvoiceSequence)
 
 PATIENT_FIELDS = {
     "patient_code",
@@ -81,8 +82,43 @@ def _with_pagination(
 # Patients
 
 
+def _next_patient_code(db: Session) -> str:
+    prefix = "P-"
+    
+    # Try to get the sequence from InvoiceSequence table with row-level lock
+    seq_row = db.query(InvoiceSequence).filter(InvoiceSequence.prefix == prefix).with_for_update().first()
+    if seq_row is None:
+        # Initialize sequence from maximum digits suffix in current patients table
+        statement = select(Patient.patient_code).where(Patient.patient_code.like(f"{prefix}%"))
+        codes = db.scalars(statement).all()
+        
+        max_seq = 0
+        for code in codes:
+            suffix = code.removeprefix(prefix)
+            if suffix.isdigit():
+                max_seq = max(max_seq, int(suffix))
+                
+        seq_row = InvoiceSequence(prefix=prefix, next_value=max_seq + 1)
+        try:
+            with db.begin_nested():
+                db.add(seq_row)
+        except Exception:
+            pass
+            
+        seq_row = db.query(InvoiceSequence).filter(InvoiceSequence.prefix == prefix).with_for_update().first()
+        
+    sequence = seq_row.next_value
+    seq_row.next_value = sequence + 1
+    db.flush()
+    
+    return f"{prefix}{sequence:05d}"
+
+
 def create_patient(db: Session, values: Mapping[str, Any]) -> Patient:
-    patient = Patient(**_validated_values(values, PATIENT_FIELDS))
+    patient_values = dict(_validated_values(values, PATIENT_FIELDS))
+    if not patient_values.get("patient_code"):
+        patient_values["patient_code"] = _next_patient_code(db)
+    patient = Patient(**patient_values)
     return _save(db, patient)
 
 
@@ -128,31 +164,52 @@ def get_all_patients(
 
 # Bills
 
+_invoice_lock = threading.Lock()
+
+
+def _get_financial_year(dt: datetime) -> str:
+    # Financial year starts on April 1st
+    if dt.month >= 4:
+        start_year = dt.year
+        end_year = (dt.year + 1) % 100
+    else:
+        start_year = dt.year - 1
+        end_year = dt.year % 100
+    return f"{start_year}-{end_year:02d}"
+
 
 def _next_invoice_number(db: Session) -> str:
-    year = datetime.now(UTC).year
+    with _invoice_lock:
+        now = datetime.now(UTC)
+        financial_year = _get_financial_year(now)
+        
+        # Get hospital name from database settings
+        settings_dict = get_hospital_settings(db)
+        hospital_name = settings_dict.get("name", "MEDHA HOSPITAL")
+        hospital_code = "".join(c for c in hospital_name.split()[0] if c.isalnum() or c == ".").upper()
 
-    # PostgreSQL transaction-level locking serializes invoice allocation.
-    if db.get_bind().dialect.name == "postgresql":
-        db.execute(select(func.pg_advisory_xact_lock(0x4842, year)))
+        prefix = f"{hospital_code}/{financial_year}/"
+        
+        # Find or create sequential row in invoice_sequences table with row-level locking
+        seq_row = db.query(InvoiceSequence).filter(InvoiceSequence.prefix == prefix).with_for_update().first()
+        if seq_row is None:
+            try:
+                # Use a nested transaction/savepoint to handle concurrent inserts safely
+                with db.begin_nested():
+                    seq_row = InvoiceSequence(prefix=prefix, next_value=1)
+                    db.add(seq_row)
+            except Exception:
+                # Concurrent insert completed in another thread/transaction
+                pass
+            
+            # Select the newly created/existing row with row-level lock
+            seq_row = db.query(InvoiceSequence).filter(InvoiceSequence.prefix == prefix).with_for_update().first()
+            
+        sequence = seq_row.next_value
+        seq_row.next_value = sequence + 1
+        db.flush()
 
-    prefix = f"HB{year}"
-    statement = select(func.max(Bill.invoice_number)).where(
-        Bill.invoice_number.like(f"{prefix}_____")
-    )
-    latest_invoice = db.scalar(statement)
-
-    if latest_invoice is None:
-        sequence = 1
-    else:
-        suffix = latest_invoice.removeprefix(prefix)
-        if len(suffix) != 5 or not suffix.isdigit():
-            raise ValueError("Existing invoice number has an invalid format")
-        sequence = int(suffix) + 1
-
-    if sequence > 99999:
-        raise ValueError(f"Invoice number limit reached for {year}")
-    return f"{prefix}{sequence:05d}"
+        return f"{prefix}{sequence:04d}"
 
 
 def _item_values(item: BillItem) -> dict[str, Any]:
@@ -416,3 +473,12 @@ def update_hospital_settings(db: Session, settings_dict: Mapping[str, str]) -> d
             db.add(setting)
     db.commit()
     return get_hospital_settings(db)
+
+
+def get_all_audit_logs(
+    db: Session, offset: int = 0, limit: int | None = None
+) -> list[AuditLog]:
+    statement = _with_pagination(
+        select(AuditLog).order_by(AuditLog.timestamp.desc()), offset, limit
+    )
+    return list(db.scalars(statement).all())
