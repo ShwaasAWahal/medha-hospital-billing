@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     tax_rate_percent: Decimal = Field(default=Decimal("18.00"), ge=0)
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,file://,null"
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,file://,null,https://medha-hospital-billing-frontend.vercel.app/"
     initial_admin_username: str | None = None
     initial_admin_password: str | None = Field(default=None, min_length=8)
     initial_admin_full_name: str | None = None
